@@ -8,12 +8,12 @@
 #endif
 
 // sleep functions
-#ifndef SCHED_SLEEP
-// #define SCHED_SLEEP LowPower.deepSleep
-//#define SCHED_SLEEP LowPower.sleep
+#ifndef SLEEP
+// #define SLEEP LowPower.deepSleep
+//#define SLEEP LowPower.sleep
 #include <unistd.h>
-#define SCHED_SLEEP usleep
-// #define SCHED_SLEEP LowPower.idle
+#define SLEEP usleep
+// #define SLEEP LowPower.idle
 #endif
 
 #ifndef NOW_T 
@@ -27,9 +27,6 @@ NOW_T NOW() {
     return std::chrono::duration_cast<std::chrono::microseconds>
               (std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
-
-// ONLY TO GET YCM TO STOP COMPLAINING
-//NOW_T Millis() {return 0;};
 #endif
 
 #define SCHED_FOREVER 0
@@ -47,13 +44,6 @@ class Sched;
 //#define SCHED_METRICS
 //#define SCHED_TASK_DATA
 
-
-#ifdef SCHED_METRICS
-NOW_T _start, _end, _elapsed;
-#define SCHED_NOW_START() { NOW_T _start = NOW(); }
-#define SCHED_NOW_END { NOW_T _end = NOW(); NOW_T _elapsed = _end - _start; }
-#endif
-
 // === CLASS DEFINITIONS ===
 
 class Task {
@@ -64,6 +54,7 @@ class Task {
         unsigned long nextRun;
         unsigned long period;
         unsigned id;
+        bool enabled;
 
         Task(Sched *sched, unsigned long times, unsigned long period, void (*func)());
 
@@ -75,6 +66,7 @@ class Task {
 
 class Sched {
     friend class Task;
+
     public:
         Task* nextTask;
 
@@ -89,13 +81,23 @@ class Sched {
         TaskID addTask(Task* t);
         TaskID addTask(int times, int period, void (*func)());
 
-        NOW_T t_total();
-        NOW_T t_run();
-        NOW_T t_sleep();
-        NOW_T t_overhead();
+        bool taskEnable(Task *t);
+        bool taskEnable(TaskID id);
+        bool taskEnable(void (*func)());
+
+        bool taskDisable(Task *t);
+        bool taskDisable(TaskID id);
+        bool taskDisable(void (*func)());
+
+        NOW_T t_total() { return _t_run + _t_sleep + NOW() - _t_start; }
+        NOW_T t_run() { return _t_run; }
+        NOW_T t_sleep() { return _t_sleep; }
+        NOW_T t_overhead() { return NOW() - _t_start - _t_sleep - _t_run; }
+
     private:
         bool running;
-        unsigned taskCount;
+        unsigned _taskCount;
+        unsigned _activeTaskCount;
         TaskID nextTaskID;
 
         NOW_T _t_run;

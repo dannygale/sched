@@ -1,9 +1,19 @@
-#include <iostream>
 #include <string>
 #include <ctime>
 
 #include "sched.h"
 
+#ifdef STDLIB
+using namespace std;
+#include <iostream>
+#define DEBUG(...) { cout << __VA_ARGS__ <<  flush }
+#else
+#define DEBUG(...)
+#endif
+
+//
+// Constructor 
+//
 Sched::Sched() : 
     nextTaskID(1), 
     _t_run(0), 
@@ -11,11 +21,15 @@ Sched::Sched() :
     _t_start(0)
 {  }
 
+//
+// === Public Methods 
+//
+
 void Sched::loop() {
     Task *cursor, *previous, *temp, *t;
 
     //std::cout << "loop\n" << std::flush;
-    if (nextTask && running) {
+    if (running && nextTask && nextTask->enabled) {
         //std::cout << "have a task and running\n" << std::flush;
         NOW_T now = NOW();
 
@@ -23,7 +37,7 @@ void Sched::loop() {
             printTaskList();
             NOW_T sleep = nextTask->nextRun - now;
             std::cout << "next: task" << nextTask->id << " in " << sleep << "us at " << nextTask->nextRun << ". now: " << now << "\n" << std::flush;
-            SCHED_SLEEP(sleep);
+            SLEEP(sleep);
             std::cout << "end sleep\n" << std::flush;
             _t_sleep += sleep;
         }
@@ -58,7 +72,9 @@ void Sched::loop() {
             // figure out when this task needs to run again
             scheduleNextRun(t);
         }
-    } 
+    } else {
+        running = false;
+    }
 }
 
 void Sched::start() {
@@ -125,6 +141,69 @@ TaskID Sched::addTask(int times, int period, void (*func)()) {
     return t->id;
 }
 
+bool Sched::taskEnable(Task* t) {
+    t->enabled = true;
+    scheduleNextRun(t);
+    return true;
+}
+
+bool Sched::taskEnable(TaskID id) {
+    Task* t = nextTask;
+    while(t) {
+        if (t->id == id) {
+            scheduleNextRun(t);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Sched::taskEnable(void (*func)()) {
+    bool atLeastOne = false;
+    Task* t = nextTask;
+    while(t) {
+        if (t->func == func) {
+            atLeastOne = true;
+            scheduleNextRun(t);
+        }
+    }
+    return atLeastOne;
+}
+
+bool Sched::taskDisable(Task* t) {
+    t->enabled = false;
+    t->nextRun = -1ul;
+    scheduleNextRun(t);
+    return true;
+}
+
+bool Sched::taskDisable(TaskID id) {
+    Task *t = nextTask;
+    while(t) {
+        if (t->id == id) {
+            return taskDisable(t);
+        }
+    }
+    return false;
+}
+
+bool Sched::taskDisable(void (*func)()) {
+    bool atLeastOne = false;
+    Task *t = nextTask;
+    while(t) {
+        if (t->func == func) {
+            atLeastOne = true;
+            taskDisable(t);
+        }
+    }
+    return atLeastOne;
+}
+
+
+//
+// Private methods
+//
+
 void Sched::scheduleNextRun(Task* t) {
     //std::cout << "scheduling run\n" << std::flush;
     Task *cursor = nextTask, *previous = NULL, *temp = NULL, *result = NULL;
@@ -163,7 +242,7 @@ void Sched::printTaskList() {
 }
 
 Task::Task(Sched *sched, unsigned long moreTimes, unsigned long period, void (*func)()) :
-    func(func), moreTimes(moreTimes), period(period), id(0), next(NULL), _t_run(0)
+    func(func), moreTimes(moreTimes), period(period), id(0), next(NULL), _t_run(0), enabled(true)
 {
     sched->addTask(this);
 }
