@@ -98,10 +98,10 @@ class Sched {
         bool taskDisable(TaskID id);
         bool taskDisable(void (*func)());
 
-        NOW_T t_total() { return _t_run + _t_sleep + NOW() - _t_start; }
+        NOW_T t_total() { return _t_run + _t_sleep + elapsed(); }
         NOW_T t_run() { return _t_run; }
         NOW_T t_sleep() { return _t_sleep; }
-        NOW_T t_overhead() { return NOW() - _t_start - _t_sleep - _t_run; }
+        NOW_T t_overhead() { return elapsed() - _t_sleep - _t_run; }
 
     private:
         bool running;
@@ -112,6 +112,15 @@ class Sched {
         NOW_T _t_run;
         NOW_T _t_sleep;
         NOW_T _t_start;
+        NOW_T elapsed() { 
+            NOW_T now = NOW();
+            if (now <= _t_start) {
+                return now - _t_start;
+            } else { 
+                // handle overflow
+                return ~((NOW_T)-1) - _t_start + now;
+            }
+        }
 
         void scheduleNextRun(Task *t);
         void printTaskList();
