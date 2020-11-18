@@ -1,0 +1,22 @@
+{
+  "name": "sched",
+  "keywords": "task, schedule, scheduler, multitask, multitasking, thread",
+  "description": "Fast, lightweight task scheduling for resource constrained embedded systems",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/dannygale/sched"
+  },
+  "authors":
+  [
+    {
+      "name": "Danny Gale",
+      "email": "danny.m.gale@gmail.com
+      "url": "https://github.com/dannygale",
+      "maintainer": true
+    }
+  ],
+  "version": "0.0.1",
+  "frameworks": "arduino",
+  "platforms": "*"
+}

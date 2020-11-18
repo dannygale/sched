@@ -3,13 +3,6 @@
 
 #include "sched.h"
 
-#ifdef STDLIB
-using namespace std;
-#include <iostream>
-#define DEBUG(...) { cout << __VA_ARGS__ <<  flush }
-#else
-#define DEBUG(...)
-#endif
 
 //
 // Constructor 

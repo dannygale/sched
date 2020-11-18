@@ -22,6 +22,15 @@
 
 #ifndef NOW
 //#define NOW Millis
+
+#define USE_STDLIB
+#ifdef USE_STDLIB
+using namespace std;
+#include <iostream>
+#define DEBUG(...) { cout << __VA_ARGS__ <<  flush }
+#else
+#define DEBUG(...)
+#endif
 using namespace std;
 NOW_T NOW() {
     return std::chrono::duration_cast<std::chrono::microseconds>
