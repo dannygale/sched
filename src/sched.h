@@ -7,6 +7,18 @@
 #define NULL 0
 #endif
 
+#define SCHED_FOREVER 0
+#define SCHED_ONCE 1
+
+// === TYPES ===
+#ifndef NOW_T
+typedef unsigned long long NOW_T;
+#endif
+
+#ifndef NULL
+#define NULL 0
+#endif
+
 // sleep functions
 #ifndef SLEEP
 // #define SLEEP LowPower.deepSleep
@@ -17,7 +29,7 @@
 #endif
 
 #ifndef NOW_T 
-#define NOW_T long long
+typedef unsigned long long NOW_T;
 #endif
 
 #ifndef NOW
@@ -38,20 +50,10 @@ NOW_T NOW() {
 }
 #endif
 
-#define SCHED_FOREVER 0
-#define SCHED_ONCE 1
-
-// === TYPES ===
-
 typedef unsigned TaskID;
-
 
 class Task;
 class Sched;
-
-// === BEHAVIOR CONFIGURATION ===
-//#define SCHED_METRICS
-//#define SCHED_TASK_DATA
 
 // === CLASS DEFINITIONS ===
 
@@ -65,12 +67,18 @@ class Task {
         unsigned id;
         bool enabled;
 
-        Task(Sched *sched, unsigned long times, unsigned long period, void (*func)());
+        Task(Sched *sched, unsigned long times, NOW_T period, void (*func)());
 
         void run();
+
+        NOW_T t_total() { return _total_runtime; }
+        unsigned t_invocations() { return _invocations; }
+        NOW_T t_avgRun() { return _total_runtime / (NOW_T)_invocations; }
     private:
         Task * next;
-        NOW_T _t_run;
+        
+        NOW_T _total_runtime;
+        unsigned _invocations;
 };
 
 class Sched {
@@ -98,6 +106,10 @@ class Sched {
         bool taskDisable(TaskID id);
         bool taskDisable(void (*func)());
 
+        bool taskDelete(Task *t);
+        bool taskDelete(TaskID id);
+        bool taskDelete(void (*func)());
+
         NOW_T t_total() { return _t_run + _t_sleep + elapsed(); }
         NOW_T t_run() { return _t_run; }
         NOW_T t_sleep() { return _t_sleep; }
@@ -114,12 +126,7 @@ class Sched {
         NOW_T _t_start;
         NOW_T elapsed() { 
             NOW_T now = NOW();
-            if (now <= _t_start) {
-                return now - _t_start;
-            } else { 
-                // handle overflow
-                return ~((NOW_T)-1) - _t_start + now;
-            }
+            return now <= _t_start ? now - _t_start : ((NOW_T)(-1) - _t_start) + now;
         }
 
         void scheduleNextRun(Task *t);
